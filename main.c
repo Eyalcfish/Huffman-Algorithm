@@ -1,45 +1,85 @@
 #include <stdio.h>
 #include <malloc.h>
+#include "hashmap.h"
+#include "intlist.h"
+#include "tree.h"
+#include "linkedlist.h"
+#include <string.h>
 
-struct intList {
-    int *array;
-    int length;
-    int bytes;
-} typedef ints;
+struct ching {
+    int value;
+    int freq;
+} typedef ching;
 
-ints *intsMake() {
-    ints *ret = (ints*)malloc(sizeof(ints));
-    ret->array = (int*)malloc(sizeof(int));
-    ret->length = 0;
-    ret->bytes = 4;
-    return ret;
+char *code(char *input) {
+
 }
 
-ints *intsAdd(ints* list,int a) {
-    list->array = (int*) realloc(list->array,sizeof(int)*(list->length+1));
-    list->array[list->length] = a;
-    list->length++;
-    list->bytes = list->length*4;
+ching **sortArray(ching** list,int length) {
+    for(int i = 0 ; i < length ; i++) {
+        for (int f = i ; f < length ; f++) {
+            if (list[i]->freq < list[f]->freq) {
+                ching* var= list[i];
+                list[i] = list[f];
+                list[f] = var;
+            }
+        }
+    }
     return list;
 }
 
-void printList(ints* list) {
-    printf("-----------------\n");
-    for(int i = 0 ; i < list->length ; i++) {
-        printf("%d\n",list->array[i]);
+ching *getAmount(char *input,int i) {
+    char c = input[i];
+    char f = -1;
+    int freq = 0;
+    int length = strlen(input);
+    for(i = 0 ; i  < length; i++) {
+        f = input[i];
+        if(f == c) {
+            freq++;
+        }
     }
-    printf("-----------------\n");
+    ching *ret = (ching*)malloc(sizeof(ching));
+    ret->freq = freq;
+    ret->value = c;
+    return ret;
 }
 
-int main() {
-    ints *list = intsMake();
-    list = intsAdd(list,1);
-    list = intsAdd(list,6);
-    list = intsAdd(list,1);
-    list = intsAdd(list,3);
-    list = intsAdd(list,5);
-    printList(list);
-    printf("Hello, World!\n");
+ching **getList(char *input) {
+    slot *map = createHashmap();
+    for(int i = 0 ; i < strlen(input) ; i++) {
+        map = insertInt(map,input[i], getAmount(input,i));
+    }
+    long b = *(long*)(map[0].value) + 1;
+    ching **ret = (ching**)malloc(b*sizeof(ching*));
+    ret[b-1] = NULL;
+    for(int i = 1 ; i < b; i++) {
+        ret[i-1] = (ching*)map[i].value;
+    }
+    return ret;
+}
+
+int getLength(ching **list) {
+    int ret = 0;
+    while(list[ret] != NULL) {
+        ret++;
+    }
+    return ret-1;
+}
+
+
+
+int main(int argc, char* argv[]) {
+    ching **list = getList("go go gophers");
+    int length = getLength(list);
+    sortArray(list,length);
+    for(int i = 0 ; i < length ; i++) {
+        printf(" '%c' ",list[i]->value);
+    }
+    printf("\n");
+    for(int i = 0 ; i < length ; i++) {
+        printf("  %d  ",list[i]->freq);
+    }
     free(list);
     return 0;
 }
