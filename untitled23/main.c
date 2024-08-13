@@ -70,7 +70,7 @@ int getLength(ching **list) {
 
 
 int main(int argc, char* argv[]) {
-    ching **list = getList("go go gophers");
+    ching **list = getList("go go gophersxfjygfjdgduytdtryu");
     int length = getLength(list);
     sortArray(list,length);
     for(int i = 0 ; i < length ; i++) {
