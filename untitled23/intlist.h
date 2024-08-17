@@ -2,13 +2,13 @@
 #include <malloc.h>
 
 struct intList {
-    int *array;
+    unsigned char *array;
     int length;
     int bytes;
 } typedef ints;
 
-ints *intsAdd(ints* list,int a) {
-    list->array = (int*) realloc(list->array,sizeof(int)*(list->length+1));
+ints *intsAdd(ints* list,char a) {
+    list->array = (char*) realloc(list->array,sizeof(char)*(list->length+1));
     list->array[list->length] = a;
     list->length++;
     list->bytes = list->length*4;

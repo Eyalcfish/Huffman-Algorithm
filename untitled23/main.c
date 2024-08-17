@@ -6,10 +6,18 @@
 #include "linkedlist.h"
 #include <string.h>
 
+#define bitset(byte,nbit)   ((byte) |=  (1<<(nbit)))
+#define bitclear(byte,nbit) ((byte) &= ~(1<<(nbit)))
+
 struct ching {
     int value;
     int freq;
 } typedef ching;
+
+struct chang {
+    unsigned char *array;
+    char value;
+} typedef chang;
 
 char *code(char *input) {
 
@@ -23,11 +31,13 @@ char *code(char *input) {
 // calculating height of Huffman Tree
 #define MAX_TREE_HT 100
 
+typedef unsigned char uchar;
+
 // A Huffman tree node
 struct MinHeapNode {
 
     // One of the input characters
-    char data;
+    unsigned char data;
 
     // Frequency of the character
     unsigned freq;
@@ -179,11 +189,20 @@ void buildMinHeap(struct MinHeap* minHeap)
 }
 
 // A utility function to print an array of size n
-void printArr(int arr[], int n)
+void printArr(unsigned char arr[], int n)
 {
     int i;
-    for (i = 0; i < n; ++i)
+    for (i = 0; i < n; i++)
         printf("%d", arr[i]);
+
+    printf("\n");
+}
+
+void printArrChar(unsigned char arr[], int n)
+{
+    int i;
+    for (i = 0; i < n; i++)
+        printf("%c", arr[i]);
 
     printf("\n");
 }
@@ -192,7 +211,6 @@ void printArr(int arr[], int n)
 int isLeaf(struct MinHeapNode* root)
 
 {
-
     return !(root->left) && !(root->right);
 }
 
@@ -214,6 +232,30 @@ struct MinHeap* createAndBuildMinHeap(char data[],
     buildMinHeap(minHeap);
 
     return minHeap;
+}
+
+unsigned char bitArray(unsigned char *list) {
+    unsigned char ret = 0;
+    for(int i = 0 ;i  < 8 ; i++) {
+        if(list[i] == 1) {
+            bitset(ret,i);
+        }
+    }
+    return ret;
+}
+
+ints *bitCoding(ints *list) {
+    uchar* re = (uchar*) calloc(list->length,1);
+    ints* ret = intsMake();
+    ret->length = (list->length/8)+1;
+    for(int i = 0 ;i  < ret->length ; i++) {
+        for(int f = 0 ; f < 8 ; f++) {
+            if (list->array[i * 8 + f] == 1) {
+                bitset(ret->array[i], f);
+            }
+        }
+    }
+    return ret;
 }
 
 // The main function that builds Huffman tree
@@ -260,23 +302,20 @@ struct MinHeapNode* buildHuffmanTree(char data[],
 
 // Prints huffman codes from the root of Huffman Tree.
 // It uses arr[] to store codes
-void printCodes(struct MinHeapNode* root, int arr[],
-                int top)
+void printCodes(struct MinHeapNode* root, unsigned char arr[],
+                int top,chang *ret)
 
 {
-
     // Assign 0 to left edge and recur
     if (root->left) {
-
         arr[top] = 0;
-        printCodes(root->left, arr, top + 1);
+        printCodes(root->left,arr,top+1,ret);
     }
 
     // Assign 1 to right edge and recur
     if (root->right) {
-
         arr[top] = 1;
-        printCodes(root->right, arr, top + 1);
+        printCodes(root->right,arr,top+1,ret);
     }
 
     // If this is a leaf node, then
@@ -284,27 +323,34 @@ void printCodes(struct MinHeapNode* root, int arr[],
     // characters, print the character
     // and its code from arr[]
     if (isLeaf(root)) {
-
-        printf("%c: ", root->data);
-        printArr(arr, top);
+        arr[top] = 0;
+        chang rets;
+        rets.value = root->data;
+        unsigned char *thing = (unsigned char*) malloc(8);
+        for(int i = 0 ; i < 8 ; i++) {
+            if (i >= top) {
+                thing[i] = 9;
+            }
+            else {thing[i] = arr[i];}
+        }
+        rets.array = thing;
+        ret[bitArray(arr)] = rets;
     }
 }
 
 // The main function that builds a
 // Huffman Tree and print codes by traversing
 // the built Huffman Tree
-void HuffmanCodes(char data[], int freq[], int size)
+void HuffmanCodes(char data[], int freq[], int size,chang *ret,unsigned char *arr)
 
 {
     // Construct Huffman Tree
-    struct MinHeapNode* root
-            = buildHuffmanTree(data, freq, size);
+    struct MinHeapNode* root = buildHuffmanTree(data, freq, size);
 
     // Print Huffman codes using
     // the Huffman tree built above
-    int arr[MAX_TREE_HT], top = 0;
-
-    printCodes(root, arr, top);
+    int top = 0;
+    printCodes(root, arr, top,ret);
 }
 
 ching **sortArray(ching** list,int length) {
@@ -360,18 +406,66 @@ int getLength(ching **list) {
     return ret-1;
 }
 
+ints *getId(slot *map,unsigned char key) {
+    unsigned char *ids = (unsigned char*)getInt(key,map);
+    int i = 7;
+    while(ids[i] == 9) {
+        i--;
+    }
+    i++;
+    unsigned char *l = (unsigned char *)calloc(i,1);
+    for(int f = 0; f < i ; f++) {
+        l[f] =ids[f];
+    }
+    ints *ret = (ints*)malloc(sizeof(ints));
+    ret->array = l;
+    ret->length = i;
+    return ret;
+}
 
+ints *concat(ints *a,ints *b) {
+    for(int i = 0 ;i < b->length ; i++) {
+        intsAdd(a,b->array[i]);
+    }
+    return a;
+}
 
-int main(int argc, char* argv[]) {
-    ching **list = getList("go go gophers");
+ints *codeBody(char *original) {
+    unsigned char arr[MAX_TREE_HT];
+    chang *ret  = (chang*)calloc(MAX_TREE_HT,sizeof(chang));
+    ching **list = getList(original);
     int length = getLength(list);
-    char values[length];
-    int freqs[length];
+    char *values = (char*)calloc(length,1);
+    int *freqs = (char*)calloc(length,4);
     for(int i = 0 ; i < length ; i++) {
         values[i] = list[i]->value;
         freqs[i] = list[i]->freq;
     }
-    HuffmanCodes(values,freqs,length);
+    HuffmanCodes(values,freqs,length,ret,arr);
+    int huflength = MAX_TREE_HT-1;
+    while(ret[huflength].array == NULL) {
+        huflength--;
+    }
+    slot *map = createHashmap();
+    for(int i = 0 ; i < huflength+1 ; i++) {
+        if(ret[i].value != NULL && ret[i].array != NULL) {
+            map = insertInt(map, ret[i].value, ret[i].array);
+        }
+    }
+    int i = 1;
+    ints *l = getId(map, original[0]);
+    while(original[i] != '\0') {
+        l = concat(l,getId(map, original[i]));
+        i++;
+    }
+    ints *final = bitCoding(l);
+}
+
+int main(int argc, char* argv[]) {
+    char *original = "go go gophers";
+    ints *final = codeBody(original);
+    printArrChar(final->array, final->length);
+    free(final);
     return 0;
 }
 

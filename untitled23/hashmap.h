@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 
 struct slot {
     long key;
@@ -10,7 +11,10 @@ long turnToInt(char *key) {
     int i = 0 ;
     int cur = 0;
     while(key[i] !='\0') {
-        cur += key[i] - 65;
+        cur += key[i];
+        if (key[i] > 65) {
+            cur -= 65;
+        }
         if (key[i++] > 90) cur -= 32;
         ret *= cur;
     }
@@ -42,6 +46,33 @@ int find(char *key,slot *bucket) {
             next = next*2;
         }
         if(bucket[i].key == ret || i >= n || i <= 0) {
+            return i;
+        }
+    }
+}
+
+int findInt(int ret,slot *bucket) {
+    long n = *(long*)bucket[0].value;
+    int i = 0;
+    int next = 2;
+    while(1) {
+        if(ret > bucket[i].key) {
+            int f = i;
+            i += (n/next);
+            next = next*2;
+            if (f == i) {
+                i++;
+            }
+        }
+        else if (ret < bucket[i].key) {
+            int f = i;
+            i -= (n/next);
+            next = next*2;
+            if (f == i) {
+                i--;
+            }
+        }
+        if(bucket[i].key == ret || i >= n || i < 0) {
             return i;
         }
     }
@@ -112,11 +143,15 @@ void *get(char *key,slot *bucket) {
     return bucket[find(key,bucket)].value;
 }
 
+void *getInt(int key,slot *bucket) {
+    return bucket[findInt(key,bucket)].value;
+}
+
 slot *createHashmap() {
     slot *bucket = (slot*)malloc(sizeof(slot));
     long *val = (long*)malloc(sizeof(long));
     *val = 1;
     bucket[0].value = val;
-    bucket[0].key = 'a';
+    bucket[0].key = 0;
     return bucket;
 }
