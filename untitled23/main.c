@@ -8,6 +8,7 @@
 
 #define bitset(byte,nbit)   ((byte) |=  (1<<(nbit)))
 #define bitclear(byte,nbit) ((byte) &= ~(1<<(nbit)))
+#define bitcheck(byte,nbit) ((byte) &   (1<<(nbit)))
 
 struct ching {
     int value;
@@ -35,15 +36,14 @@ typedef unsigned char uchar;
 
 // A Huffman tree node
 struct MinHeapNode {
-
+    struct MinHeapNode *left, *right;
     // One of the input characters
     unsigned char data;
 
     // Frequency of the character
-    unsigned freq;
 
     // Left and right child of this node
-    struct MinHeapNode *left, *right;
+    unsigned freq;
 };
 
 // A Min Heap: Collection of
@@ -59,6 +59,94 @@ struct MinHeap {
     // Array of minheap node pointers
     struct MinHeapNode** array;
 };
+
+void encode_preorder_traversal(struct MinHeapNode * root, char * serialized_string, int * serialized_string_idx)
+{
+    if(root)
+    {
+        char * tmp_str = (char *)malloc(sizeof(char) * 10);
+        int tmp_str_len = strlen(tmp_str);
+
+        memcpy(&serialized_string[*serialized_string_idx], tmp_str, tmp_str_len);
+        *serialized_string_idx += tmp_str_len;
+        serialized_string[*serialized_string_idx] = ',';
+        *serialized_string_idx += 1;
+
+        free(tmp_str);
+
+        encode_preorder_traversal(root->left, serialized_string, serialized_string_idx);
+        encode_preorder_traversal(root->right, serialized_string, serialized_string_idx);
+    }
+    else
+    {
+        serialized_string[*serialized_string_idx] = '#';
+        *serialized_string_idx += 1;
+        serialized_string[*serialized_string_idx] = ',';
+        *serialized_string_idx += 1;
+    }
+    return;
+}
+
+/** Encodes a tree to a single string. */
+char* serialize(struct MinHeapNode* root)
+{
+    char * serialized_string = (char *)malloc(sizeof(char) * (10001 * 10));
+    int serialized_string_idx = 0;
+
+    encode_preorder_traversal(root, serialized_string, &serialized_string_idx);
+    serialized_string[serialized_string_idx] = '\0';
+    return serialized_string;
+}
+
+struct TreeNode * decode_preorder_traversal(struct MinHeapNode ** root, char * data, int * index)
+{
+    if(data[*index] != '\0')
+    {
+        if(data[*index] == '#')
+        {
+            *index += 2;
+            return NULL;;
+        }
+
+
+        int val;
+        char * tmp_str = (char *)malloc(sizeof(char) * 10);
+        int tmp_str_idx = 0;
+        while(data[*index] != ',')
+        {
+            tmp_str[tmp_str_idx++] = data[*index];
+            *index += 1;
+        }
+        *index += 1;
+        tmp_str[tmp_str_idx] = '\0';
+
+        val = atoi(tmp_str);
+        struct MinHeapNode * new_node = (struct MinHeapNode *)malloc(sizeof(struct MinHeapNode));
+        new_node->data = val;
+        new_node->left = NULL;
+        new_node->right = NULL;
+
+        if(*root == NULL)
+        {
+            *root = new_node;
+        }
+
+        new_node->left = decode_preorder_traversal(root, data, index);
+        new_node->right = decode_preorder_traversal(root, data, index);
+        return new_node;
+    }
+    return NULL;
+}
+
+/** Decodes your encoded data to tree. */
+struct MinHeapNode* deserialize(char* data)
+{
+    struct MinHeapNode * root = NULL;
+
+    int index = 0;
+    decode_preorder_traversal(&root, data, &index);
+    return root;
+}
 
 // A utility function allocate a new
 // min heap node with given character
@@ -255,6 +343,7 @@ ints *bitCoding(ints *list) {
             }
         }
     }
+    ret->bytes = list->length;
     return ret;
 }
 
@@ -323,6 +412,8 @@ void printCodes(struct MinHeapNode* root, unsigned char arr[],
     // characters, print the character
     // and its code from arr[]
     if (isLeaf(root)) {
+        printf("%c: ",root->data);
+        printArr(arr,top);
         arr[top] = 0;
         chang rets;
         rets.value = root->data;
@@ -341,7 +432,7 @@ void printCodes(struct MinHeapNode* root, unsigned char arr[],
 // The main function that builds a
 // Huffman Tree and print codes by traversing
 // the built Huffman Tree
-void HuffmanCodes(char data[], int freq[], int size,chang *ret,unsigned char *arr)
+struct MinHeapNode* HuffmanCodes(char data[], int freq[], int size,chang *ret,unsigned char *arr)
 
 {
     // Construct Huffman Tree
@@ -351,6 +442,7 @@ void HuffmanCodes(char data[], int freq[], int size,chang *ret,unsigned char *ar
     // the Huffman tree built above
     int top = 0;
     printCodes(root, arr, top,ret);
+    return root;
 }
 
 ching **sortArray(ching** list,int length) {
@@ -430,6 +522,9 @@ ints *concat(ints *a,ints *b) {
     return a;
 }
 
+struct MinHeapNode* tree;
+
+
 ints *codeBody(char *original) {
     unsigned char arr[MAX_TREE_HT];
     chang *ret  = (chang*)calloc(MAX_TREE_HT,sizeof(chang));
@@ -441,7 +536,7 @@ ints *codeBody(char *original) {
         values[i] = list[i]->value;
         freqs[i] = list[i]->freq;
     }
-    HuffmanCodes(values,freqs,length,ret,arr);
+    tree = HuffmanCodes(values,freqs,length,ret,arr);
     int huflength = MAX_TREE_HT-1;
     while(ret[huflength].array == NULL) {
         huflength--;
@@ -459,13 +554,113 @@ ints *codeBody(char *original) {
         i++;
     }
     ints *final = bitCoding(l);
+    return final;
+}
+
+ints *turnToBinary(ints *input) {
+    ints* ret = (ints*) calloc(1,sizeof(ints));
+    ret->array = (unsigned char*) calloc(input->length*8,sizeof(unsigned char));
+    ret->length = input->bytes;
+    for(int i = 0 ; i  < input->length ; i++) {
+        for(int f = 0 ; f < 8 ; f++) {
+            if(bitcheck(input->array[i],f) != 0) {
+                ret->array[i * 8 + f] = 1;
+            }
+            else {
+                ret->array[i * 8 + f] = 0;
+            }
+        }
+    }
+    return ret;
+}
+
+char decodeFromTree(struct MinHeapNode* root,ints* code,int* place) {
+    char ret;
+    if(isLeaf(root)) {
+        ret = root->data;
+        return ret;
+    }
+    if(code->array[*place] == 0) {
+        (*place)++;
+        return decodeFromTree(root->left,code,place);
+    }
+    if(code->array[*place] == 1) {
+        (*place)++;
+        return decodeFromTree(root->right,code,place);
+    }
+}
+
+ints* getChar(struct MinHeapNode *root, ints* code) {
+    ints *ret = intsMake();
+    for(int i = 0 ; i < code->length ;) {
+        intsAdd(ret,decodeFromTree(root,code,&i));
+    }
+    intsAdd(ret,0);
+    return ret;
+}
+
+FILE* encodeStringHuf(char* original) {
+    ints *f = codeBody(original);
+    FILE *ptr = fopen("file.huf","wb+");
+    short *exp = (short*) malloc(sizeof(short));
+    (*exp) = f->length*8;
+    short *length = (short*) malloc(sizeof(short));
+    (*length) = f->bytes;
+    fwrite(exp,sizeof(short),1,ptr);
+    fwrite(length,sizeof(short),1,ptr);
+    fwrite((f->array),sizeof(char),f->length,ptr);
+    char *tre = serialize(tree);
+    int i = 0;
+    while(tre[i] != 0) {i++;}
+    fwrite(tre,sizeof(char),i,ptr);
+    rewind(ptr);
+    return ptr;
+}
+
+FILE* encodeHuf(FILE* input) {
+    fseek(input,0L,SEEK_END);
+    int lengtht = ftell(input);
+    char* original = (char*) calloc(lengtht,1);
+    rewind(input);
+    fread(original,1,lengtht,input);
+    return encodeStringHuf(original);
+}
+
+unsigned char* decodeStringHuf(FILE* ptr) {
+    short expret;
+    short lengthret;
+    rewind(ptr);
+    fread(&expret,sizeof(short),1,ptr);
+    fread(&lengthret,sizeof(short),1,ptr);
+    unsigned char *arr = (unsigned char*) calloc(expret/8,sizeof(char));
+    fread(arr,sizeof(char),expret/8,ptr);
+    ints* list = intsMake();
+    list->array = arr;
+    list->length = expret/8;
+    list->bytes = lengthret;
+    long int cur = ftell(ptr);
+    fseek(ptr, 0L, SEEK_END);
+    long int end = ftell(ptr);
+    long treeSize =  end-cur;
+    char* treechars = (char*)calloc(treeSize,1);
+    fseek(ptr,cur,SEEK_SET);
+    fread(treechars,1,treeSize,ptr);
+    printf("%s\n",treechars);
+    printf("%s",serialize(tree));
+    struct MinHeapNode* root = (struct MinHeapNode*) malloc(sizeof(struct MinHeapNode));
+    root = deserialize(treechars);
+    return getChar(root,turnToBinary(list))->array;
 }
 
 int main(int argc, char* argv[]) {
     char *original = "go go gophers";
-    ints *final = codeBody(original);
-    printArrChar(final->array, final->length);
-    free(final);
+    FILE* originalFile = fopen("hello.txt","w+");
+    fwrite(original,1,strlen(original)+1,originalFile);
+
+    FILE* ptr = encodeHuf(originalFile);
+    unsigned char* ret = decodeStringHuf(ptr);
+    printf("%s()", ret);
+    free(ret);
     return 0;
 }
 
